@@ -34,3 +34,5 @@ Screenshot:
 
 References:
 * Flink CLI: https://nightlies.apache.org/flink/flink-docs-master/docs/deployment/cli/
+* Built-in Flink SQL Functions: https://nightlies.apache.org/flink/flink-docs-release-1.18/docs/dev/table/functions/systemfunctions/
+* Python Flink Table API: https://nightlies.apache.org/flink/flink-docs-release-1.18/docs/dev/python/table/intro_to_table_api/
