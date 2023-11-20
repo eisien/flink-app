@@ -1,4 +1,6 @@
 from pyflink.table import TableEnvironment, EnvironmentSettings
+from pyflink.table.expressions import col
+from pyflink.table.types import DataTypes
 
 def log_processing():
     env_settings = EnvironmentSettings.in_streaming_mode()
@@ -24,7 +26,9 @@ def log_processing():
 
     sink_ddl = """
             CREATE TABLE sink_table(
-                a VARCHAR,
+                event_id VARCHAR,
+                name VARCHAR,
+                log STRING,
                 is_json BOOLEAN
             ) WITH (
               'connector' = 'kafka',
@@ -36,14 +40,40 @@ def log_processing():
               'format' = 'json'
             )
             """
-
     t_env.execute_sql(source_ddl)
     t_env.execute_sql(sink_ddl)
 
-    t_env.sql_query("SELECT JSON_VALUE(log, '$.event_id') as event_id, log IS JSON as is_json  FROM source_table") \
-    .insert_into("sink_table")
-        # .execute_insert("sink_table").wait()
+    query=t_env.sql_query("SELECT log, log IS JSON as is_json  FROM source_table")
+    
+    processed_query = query.filter(col("is_json")==True)
+    t_env.register_table("temp", processed_query)
+    processed_query = t_env.sql_query("""
+    select 
+        JSON_VALUE(log, '$.event_id') as event_id, 
+        JSON_VALUE(log, '$.data.name') as name,
+        log,
+        is_json
+    from temp
+    """)
+    processed_query.execute_insert("sink_table")
 
+
+    # malformed_ddl = """ 
+    #         CREATE TABLE malformed_msg_table(
+    #             log STRING,
+    #             is_json BOOLEAN
+    #         ) WITH (
+    #           'connector' = 'kafka',
+    #           'topic' = 'sink-malformed-topic',
+    #           'properties.bootstrap.servers' = 'kafka:29092',
+    #           'properties.security.protocol' ='SASL_PLAINTEXT',
+    #           'properties.sasl.mechanism' = 'PLAIN',
+    #           'properties.sasl.jaas.config' = 'org.apache.kafka.common.security.plain.PlainLoginModule required username=\"admin\" password=\"admin-secret\";',
+    #           'format' = 'json'
+    #         )
+    #         """
+    # t_env.execute_sql(malformed_ddl)
+    # query.filter(col("is_json")==False).execute_insert("malformed_msg_table")
 
 if __name__ == '__main__':
     log_processing()

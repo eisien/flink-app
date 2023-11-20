@@ -2,17 +2,22 @@
 version: '2'
 services:
   jobmanager:
-    image: flink:1.16.2-scala_2.12
+    container_name: flink-jobmanager
+    build: 
+      context: ./docker_files/flink
+      dockerfile: Dockerfile
+    image: flink-python:1.16.2-scala_2.12
     ports:
       - "8081:8081"
-    command: jobmanager
     environment:
       - JOB_MANAGER_RPC_ADDRESS=jobmanager
     volumes:
       - ./flink_apps:/tmp/flink_apps
       - ./flink_jars:/tmp/flink_jars
+    command: jobmanager
 
-  taskmanager:
+  taskmanager-1:
+    container_name: flink-taskmanager-1
     image: flink:1.16.2-scala_2.12
     depends_on:
       - jobmanager
@@ -21,6 +26,16 @@ services:
       - "jobmanager:jobmanager"
     environment:
       - JOB_MANAGER_RPC_ADDRESS=jobmanager
+  # taskmanager-2:
+  #   container_name: flink-taskmanager-2
+  #   image: flink:1.16.2-scala_2.12
+  #   depends_on:
+  #     - jobmanager
+  #   command: taskmanager
+  #   links:
+  #     - "jobmanager:jobmanager"
+  #   environment:
+  #     - JOB_MANAGER_RPC_ADDRESS=jobmanager
 
   kafka-ui:
     container_name: kafka-ui
@@ -39,6 +54,7 @@ services:
 
   zookeeper:
     image: wurstmeister/zookeeper:3.4.6
+    container_name: flink-zookeeper
     environment:
       JVMFLAGS: "-Djava.security.auth.login.config=/etc/zookeeper/zookeeper_jaas.conf"
     volumes:
